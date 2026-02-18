@@ -1,0 +1,766 @@
+/* ================================
+   OLIVER.JW - STYLESHEET
+   Design: Clean & Minimal with Neutrals
+   ================================ */
+
+
+/* --------------------------------
+   1. CSS VARIABLES
+
+   Variables let you define values once and reuse them.
+   Change a color here → it updates everywhere.
+   The ":root" selector means "the whole document"
+   -------------------------------- */
+
+:root {
+    --color-background: #FAFAFA;
+    --color-text: #2D2D2D;
+    --color-accent: #1A1A1A;
+    --color-subtle: #E5E5E5;
+    --color-link: #4A5568;
+
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-heading: "Inter", var(--font-body);
+
+    --width-content: 720px;
+    --spacing-small: 16px;
+    --spacing-medium: 32px;
+    --spacing-large: 64px;
+}
+
+
+/* --------------------------------
+   DARK THEME
+
+   When data-theme="dark" is on <html>, these override the
+   :root values above. Every element using var(--color-xxx)
+   automatically gets the dark value.
+   -------------------------------- */
+
+[data-theme="dark"] {
+    --color-background: #1A1A1A;
+    --color-text: #E8E8E8;
+    --color-accent: #F0F0F0;
+    --color-subtle: #2E2E2E;
+    --color-link: #90A4AE;
+}
+
+
+/* --------------------------------
+   THEME TOGGLE BUTTON
+
+   Circular button sitting at the far right of the nav bar.
+   margin-left: auto pushes it to the right edge in a flex container.
+   -------------------------------- */
+
+.theme-toggle {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--color-subtle);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+    border-color: var(--color-link);
+}
+
+
+/* --------------------------------
+   THEME TRANSITION
+
+   Applied briefly when the user clicks the toggle so
+   colors fade smoothly instead of snapping. NOT applied
+   on page load (that would cause a visible flash).
+   -------------------------------- */
+
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
+}
+
+
+/* --------------------------------
+   2. RESET & BASE
+
+   Browsers have built-in styles that vary.
+   This creates a clean, consistent starting point.
+   -------------------------------- */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* box-sizing: border-box = padding is INCLUDED in width
+   Without it: a 100px box + 20px padding = 140px total (confusing!)
+   With it: a 100px box + 20px padding = 100px total (much better) */
+
+html {
+    font-size: 18px;              /* Base size - all other sizes relative to this */
+    scroll-behavior: smooth;      /* Smooth scrolling when clicking links */
+}
+
+body {
+    font-family: var(--font-body);
+    color: var(--color-text);
+    background-color: var(--color-background);
+    line-height: 1.7;             /* Space between lines - 1.7 = 170% of font size */
+}
+
+
+/* --------------------------------
+   3. TYPOGRAPHY
+
+   How text looks throughout the site.
+   -------------------------------- */
+
+h1 {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;            /* rem = relative to root font size (18px) */
+    font-weight: 600;             /* How bold: 400=normal, 600=semi-bold, 700=bold */
+    color: var(--color-accent);
+    margin-bottom: var(--spacing-small);
+    letter-spacing: -0.02em;      /* Slightly tighter letter spacing */
+}
+
+h2 {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    margin-bottom: var(--spacing-small);
+}
+
+p {
+    margin-bottom: 1rem;
+    max-width: 65ch;              /* ch = width of the "0" character */
+}                                 /* 65 characters per line is ideal for reading */
+
+a {
+    color: var(--color-link);
+    text-decoration: none;        /* Removes the underline */
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;  /* Smooth animation when hovering */
+}
+
+a:hover {
+    border-bottom-color: var(--color-link);  /* Underline appears on hover */
+}
+
+
+/* --------------------------------
+   4. LAYOUT
+
+   How the page is structured.
+   -------------------------------- */
+
+nav, main, footer {
+    max-width: var(--width-content);
+    margin: 0 auto;               /* auto = center horizontally */
+    padding: 0 var(--spacing-medium);
+}
+
+main {
+    min-height: 70vh;             /* vh = viewport height (screen height) */
+    padding-top: var(--spacing-large);
+    padding-bottom: 80px;         /* Extra space so content doesn't hide behind fixed bottom bar */
+}
+
+
+/* --------------------------------
+   5. NAVIGATION
+   -------------------------------- */
+
+nav {
+    padding-top: var(--spacing-medium);
+    padding-bottom: var(--spacing-medium);
+    display: flex;                /* Flexbox: items sit in a row */
+    align-items: center;          /* Vertically center all nav items */
+    gap: var(--spacing-medium);   /* Space between each link */
+}
+
+nav a {
+    font-size: 0.9rem;
+    color: var(--color-text);
+    text-transform: lowercase;    /* makes text lowercase */
+}
+
+nav a:hover {
+    color: var(--color-accent);
+}
+
+
+/* --------------------------------
+   6. ARTICLES (Projects & Writings)
+   -------------------------------- */
+
+article {
+    margin-bottom: var(--spacing-large);
+    padding-bottom: var(--spacing-medium);
+    border-bottom: 1px solid var(--color-subtle);
+}
+
+article:last-child {
+    border-bottom: none;          /* Remove border from the last article */
+}
+
+article h2 {
+    margin-bottom: 0.5rem;
+}
+
+article time {
+    font-size: 0.85rem;
+    color: var(--color-link);
+    display: block;               /* Makes it sit on its own line */
+    margin-bottom: 0.75rem;
+}
+
+
+/* --------------------------------
+   7. MEDIA PAGE (Images & Videos)
+   -------------------------------- */
+
+section {
+    margin-bottom: var(--spacing-large);
+}
+
+figure {
+    margin-bottom: var(--spacing-medium);
+}
+
+figure img,
+figure video {
+    max-width: 100%;              /* Never wider than its container */
+    height: auto;                 /* Maintain aspect ratio */
+    display: block;
+    border-radius: 4px;           /* Slightly rounded corners */
+}
+
+figcaption {
+    font-size: 0.85rem;
+    color: var(--color-link);
+    margin-top: 0.5rem;
+}
+
+
+/* --------------------------------
+   8. FOOTER
+   -------------------------------- */
+
+footer {
+    padding-top: var(--spacing-medium);
+    padding-bottom: var(--spacing-medium);
+    border-top: 1px solid var(--color-subtle);
+}
+
+footer p {
+    font-size: 0.85rem;
+    color: var(--color-link);
+}
+
+
+/* --------------------------------
+   9. SOCIAL LINKS
+   -------------------------------- */
+
+.social-links {
+    display: flex;                /* Icons in a row */
+    gap: var(--spacing-small);    /* Space between icons */
+    margin-top: var(--spacing-medium);
+}
+
+.social-links a {
+    color: var(--color-text);
+    border-bottom: none;          /* Remove underline from icon links */
+    opacity: 0.7;                 /* Slightly faded */
+    transition: opacity 0.2s ease;
+}
+
+.social-links a:hover {
+    opacity: 1;                   /* Full color on hover */
+    border-bottom: none;
+}
+
+.social-links svg {
+    display: block;
+}
+
+
+/* --------------------------------
+   10. COMING SOON PAGES
+   -------------------------------- */
+
+.coming-soon {
+    font-size: 3rem;
+    text-align: center;
+    margin-bottom: var(--spacing-medium);
+}
+
+.pepe {
+    display: block;
+    max-width: 300px;
+    margin: 0 auto;
+    border-radius: 8px;
+}
+
+
+/* --------------------------------
+   11. BOTTOM BAR (Profile Photo + Social Icons)
+   -------------------------------- */
+
+.bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: var(--width-content);
+    padding: 8px var(--spacing-medium);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--color-background);  /* Solid background so content doesn't show through */
+}
+
+.bottom-bar .social-links {
+    display: flex;
+    gap: 10px;
+    margin: 0;
+}
+
+.bottom-bar .social-links a {
+    opacity: 0.6;
+}
+
+.bottom-bar .social-links a:hover {
+    opacity: 1;
+}
+
+.bottom-bar .social-links svg {
+    width: 20px;
+    height: 20px;
+}
+
+.profile-photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--color-subtle);
+    opacity: 0.9;
+    transition: opacity 0.2s ease;
+}
+
+.profile-photo:hover {
+    opacity: 1;
+}
+
+
+/* --------------------------------
+   12. DROPDOWN MENU
+   -------------------------------- */
+
+.dropdown {
+    position: relative;           /* Dropdown positions relative to this */
+    display: flex;                /* Aligns with other nav items */
+    align-items: center;          /* Vertically centers the link */
+}
+
+.dropdown-content {
+    display: none;                /* Hidden by default */
+    position: absolute;           /* Floats below the parent */
+    top: 100%;                    /* Right below the "Writings" link */
+    left: 0;
+    background-color: var(--color-background);
+    min-width: 150px;
+    padding: 8px 0;
+    border: 1px solid var(--color-subtle);
+    border-radius: 4px;
+    z-index: 100;                 /* Appears above other content */
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;               /* Show on hover */
+}
+
+.dropdown-content a {
+    display: block;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    color: var(--color-text);
+}
+
+.dropdown-content a:hover {
+    background-color: var(--color-subtle);
+    border-bottom: none;
+}
+
+
+/* --------------------------------
+   13. BOOK REVIEWS (Collapsible)
+   -------------------------------- */
+
+details.book-review {
+    margin-bottom: var(--spacing-small);
+    border-bottom: 1px solid var(--color-subtle);
+    padding-bottom: var(--spacing-small);
+}
+
+details.book-review summary {
+    cursor: pointer;
+    list-style: none;             /* Removes default arrow */
+    padding: var(--spacing-small) 0;
+}
+
+details.book-review summary::-webkit-details-marker {
+    display: none;                /* Removes arrow in Safari/Chrome */
+}
+
+details.book-review summary::before {
+    content: "+ ";
+    font-weight: bold;
+    color: var(--color-link);
+}
+
+details.book-review[open] summary::before {
+    content: "- ";
+}
+
+.book-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+.book-author {
+    font-style: italic;
+    color: var(--color-link);
+    margin-left: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.review-content {
+    padding: var(--spacing-small) 0;
+    padding-left: var(--spacing-small);
+    border-left: 2px solid var(--color-subtle);
+    margin-top: var(--spacing-small);
+}
+
+.review-content p {
+    margin-bottom: 1rem;
+}
+
+
+/* --------------------------------
+   14. READING LIST
+   -------------------------------- */
+
+.reading-list {
+    padding-left: var(--spacing-medium);
+}
+
+.reading-list li {
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+}
+
+.reading-list .book-author {
+    margin-left: 0;
+}
+
+
+/* --------------------------------
+   15. TYPEWRITER EFFECT
+   -------------------------------- */
+
+.typewriter {
+    white-space: nowrap;           /* Keep all text on one line */
+    min-height: 1.2em;             /* Reserve space so page doesn't jump */
+}
+
+
+/* --------------------------------
+   16. PROJECT SUBTABS
+   -------------------------------- */
+
+.project-subtabs {
+    display: flex;
+    gap: 10px;
+    margin: var(--spacing-small) 0 var(--spacing-medium);
+    flex-wrap: wrap;
+}
+
+.project-subtab {
+    border: 1px solid var(--color-subtle);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+}
+
+.project-subtab:hover {
+    border-color: var(--color-link);
+}
+
+.project-subtab.active {
+    background: var(--color-text);
+    color: var(--color-background);
+    border-color: var(--color-text);
+}
+
+/* --------------------------------
+   17. EARNINGS APP
+   -------------------------------- */
+
+.earnings-form {
+    margin-top: var(--spacing-medium);
+    display: grid;
+    gap: var(--spacing-small);
+    max-width: 520px;
+}
+
+.earnings-settings {
+    margin-top: var(--spacing-large);
+}
+
+.earnings-section-title {
+    font-size: 1.1rem;
+    margin-bottom: var(--spacing-small);
+}
+
+.earnings-label {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-link);
+}
+
+.earnings-input {
+    border: 1px solid var(--color-subtle);
+    background: transparent;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: var(--color-text);
+}
+
+.earnings-input::placeholder {
+    color: var(--color-link);
+}
+
+.earnings-button {
+    justify-self: start;
+    border: 1px solid var(--color-text);
+    background: var(--color-text);
+    color: var(--color-background);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.earnings-button:hover {
+    transform: translateY(-1px);
+    opacity: 0.92;
+}
+
+.earnings-hint {
+    font-size: 0.85rem;
+    color: var(--color-link);
+}
+
+.earnings-results {
+    margin-top: var(--spacing-large);
+    display: grid;
+    gap: var(--spacing-medium);
+}
+
+.earnings-card {
+    border: 1px solid var(--color-subtle);
+    border-radius: 12px;
+    padding: var(--spacing-medium);
+    background: var(--color-background);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+}
+
+.earnings-card-title {
+    margin-bottom: 0.25rem;
+}
+
+.earnings-meta {
+    font-size: 0.9rem;
+    color: var(--color-link);
+}
+
+.earnings-previous {
+    font-size: 0.9rem;
+    color: var(--color-link);
+    margin-top: 0.25rem;
+}
+
+.earnings-links {
+    display: flex;
+    gap: var(--spacing-small);
+    margin: var(--spacing-small) 0;
+    flex-wrap: wrap;
+}
+
+.earnings-links span {
+    color: var(--color-link);
+    font-size: 0.9rem;
+}
+
+.earnings-warnings {
+    margin-top: var(--spacing-small);
+    padding-left: 1.2rem;
+    color: var(--color-link);
+    font-size: 0.9rem;
+}
+
+.request-shell {
+    max-width: 560px;
+    padding: 28px;
+    border: 1px solid var(--color-subtle);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0));
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+}
+
+.request-form {
+    margin-top: var(--spacing-medium);
+    display: grid;
+    gap: var(--spacing-small);
+}
+
+.request-status {
+    margin-top: var(--spacing-small);
+    border: 1px solid var(--color-subtle);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+}
+
+
+/* --------------------------------
+   18. PHOTO GALLERY
+   -------------------------------- */
+
+.photo-gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);  /* 3 equal columns */
+    gap: 16px;                               /* Space between photos */
+    margin-top: var(--spacing-medium);
+}
+
+.photo-gallery img {
+    width: 100%;
+    height: 250px;                           /* Fixed height for consistency */
+    object-fit: cover;                       /* Crop to fill, maintain aspect ratio */
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.photo-gallery img:hover {
+    transform: scale(1.02);
+    opacity: 0.9;
+}
+
+/* Responsive: 2 columns on tablets */
+@media (max-width: 768px) {
+    .photo-gallery {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .photo-gallery img {
+        height: 200px;
+    }
+}
+
+/* Responsive: 1 column on mobile */
+@media (max-width: 480px) {
+    .photo-gallery {
+        grid-template-columns: 1fr;
+    }
+
+    .photo-gallery img {
+        height: 280px;
+    }
+}
+
+
+/* --------------------------------
+   19. LIGHTBOX (Photo Viewer)
+
+   The lightbox is an overlay that covers the screen.
+   It starts invisible and becomes visible when "active" class is added.
+   -------------------------------- */
+
+.lightbox {
+    /* Cover the entire screen */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    /* Dark semi-transparent background */
+    background-color: rgba(0, 0, 0, 0.9);
+
+    /* Blur effect on the background (for browsers that support it) */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);  /* Safari support */
+
+    /* Center the image inside */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    /* Start invisible */
+    opacity: 0;
+    visibility: hidden;
+
+    /* Smooth fade in/out */
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+
+    /* Appear above everything else */
+    z-index: 1000;
+
+    /* Show pointer cursor to indicate it's clickable */
+    cursor: pointer;
+}
+
+/* When lightbox is active, make it visible */
+.lightbox.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* The enlarged image inside the lightbox */
+.lightbox img {
+    max-width: 90%;           /* Don't exceed 90% of screen width */
+    max-height: 90vh;         /* Don't exceed 90% of screen height */
+    object-fit: contain;      /* Show full image, don't crop */
+    border-radius: 4px;
+    cursor: default;          /* Normal cursor over the image */
+
+    /* Start slightly smaller and scale up */
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+/* When active, scale to full size */
+.lightbox.active img {
+    transform: scale(1);
+}

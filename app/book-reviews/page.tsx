@@ -1,0 +1,109 @@
+export const metadata = {
+  title: 'Oliver JW - Book Reviews',
+};
+
+const content = String.raw`
+<h1>Book Reviews</h1>
+        <p><em>Some thoughts on what i've read - often poorly written, but always honest.</em></p>
+
+        <details class="book-review">
+            <summary>
+                <span class="book-title">Cinema Speculation</span>
+                <span class="book-author">by Quentin Tarantino</span>
+            </summary>
+            <div class="review-content">
+                <p>I'm glad I read this after Ovitz's biography. Learning about the business of Hollywood is one thing, but peering into the mind of one of our generation's greatest filmmakers is a whole 'nother. It almost makes the way Hollywood agents treat films and creatives as transactional assets (as detailed by Ovitz) feel cheap and somewhat blasphemous.</p>
+                <p>They say when someone is passionate about something, they don't need to tell you, it'll show...and that's exactly what Quentin does throughout this multi-part 70s movie review (reflections? speculations?). He believes movies, along with their details, are beautiful for their own sake, and that when they're shit - they're shit. And Quentin will not hesitate to say so. Which is one of my favorite things about his writing. He is stylistically elegant, yet brash and brutally honest and raw, all at the same time.</p>
+                <p>To be completely honest, I'm not even sure I understood half of the references, actors, or movies. Everything referenced was relevant way before I was born. I felt pretty stupid and uncultured reading this book half the time. But even then, he writes with such fervor that makes me still want to watch every single movie he talks about. And hopefully, I partially hold myself to that. Getting cultured starts somewhere, I guess. Which reminds me - I should probably watch more Quentin Tarantino movies.</p>
+            </div>
+        </details>
+
+        <details class="book-review">
+            <summary>
+                <span class="book-title">Who is Michael Ovitz?</span>
+                <span class="book-author">by Michael Ovitz</span>
+            </summary>
+            <div class="review-content">
+                <p>My first biography of the year (and hopefully not the last!). If there were a head of the 'deep state' equivalent in Hollywood in the 80s and 90s, I imagine they would look something like Michael Ovitz. The man very well may have been the best connected and most influential (but also the most hated) figure in the entertainment industry most have never heard of. Ovitz exhibits the classic chip-on-the-poor-kids-shoulder persona, having built an empire from nothing. And he definitely has the ego to go along with his achievements. What I can appreciate, however, is that he is acutely aware of his shortcomings (arrogance, manipulative tendencies, power hungriness) and the impact they've had on his relationships, especially that with Ron Meyer. Their semi-reconciliation almost makes you feel bad for the guy. But then you realize Ovitz is and will always be a killer underneath and sympathy only stretches so far.</p>
+                <p>If one were to take away one business lesson from Ovitz, it would be that nothing is beneath you. Work harder than anybody else in the mailroom. Help your clients' kids get into private school. Be available round-the-clock, 24/7.</p>
+                <p>The most important takeaway, however, is in a moment of self-reflection Ovitz has, when he says something to the tune of, 'I could've worked 10% less, and nothing in my business would've changed, but I would've had an additional 3 years of life'. What is the true cost of becoming a mogul? And is it worth it?</p>
+            </div>
+        </details>
+
+        <details class="book-review">
+            <summary>
+                <span class="book-title">When Breath Becomes Air</span>
+                <span class="book-author">by Paul Kalanithi</span>
+            </summary>
+            <div class="review-content">
+                <p>Wow. This was the first time I've started and finished a book in a single day. This one resonated with me deeply on a personal level, especially now, for those who know.</p>
+                <p>Paul Kalanithi was a masterful writer: When Breath Becomes Air is undoubtedly his magnum opus (and probably his only opus?), a beautiful display of his mastery of two very distant subjects: medicine and literature. It's rare that an author is able to expose their raw personality in only 200 pages, but in reading his work, I almost felt like I got to know him, on an intimate - but not uncomfortably so - level.</p>
+                <p>What does it mean to live a fulfilling life? And is it possible to live well, knowing that death is on your doorstep? The one certainty is that we will all die, yet death, for most of us (including myself), is an abstract concept elusive and seemingly so far away. That one day our time is coming doesn't weigh on us much. But mortality is on the other side of the coin of living, and perhaps the knowledge that our days have limits should be played to our advantage. The "live everyday as if it were your last" mantra is incredibly trite, but truth takes root in common knowledge. This book reminds me of Man's Search for Meaning - people pushed to the brink seem to be gushing with invaluable wisdom and there is definitely something to be gained from just listening. And Paul certainly provides a few nuggets of advice: advocating for finding a calling versus a career, the importance of family and a supportive spouse (that he decided to have a daughter knowing that his terminal cancer would leave her fatherless is not a decision I'm sure I would've had the courage to make myself), and the value of having interdisciplinary interests (he's inspired me to end my non-fiction streak and go check out some of western classics).</p>
+                <p>And how do you accept death? One moment it is something you never think about, and in the next, it consumes your entire being. Perhaps the answer lies in fully embracing it. Only then does it move from an anxiety to an inevitability, and there is certainly something calming about the inevitable. Is the quality and depth of one's life defined by the number of days? Partially. But even more so by the quality of the days. Yet living with dignity and purpose when everyday is a countdown can't be easy, but it is a choice, and unquestionably the most noble one. To fight to the end is to live fully, to strive is to achieve, the journey is the ends in of itself, so on and so forth.</p>
+                <p>One note to Paul's wife, and more broadly, all of the other active bystanders - whether they be mothers, daughters, lovers or friends - who painstakingly play an unparalleled role in the process: may you never underestimate your own impact. You are why the fight is worth it. Head up, and carry forth.</p>
+                <p>Thank you, Paul.</p>
+                <p>P.S., fuck cancer!</p>
+            </div>
+        </details>
+
+        <details class="book-review">
+            <summary>
+                <span class="book-title">The Grapes of Wrath</span>
+                <span class="book-author">by John Steinbeck</span>
+            </summary>
+            <div class="review-content">
+                <p><em>Foreword: I read this immediately after East of Eden, and I actually think The Grapes of Wrath is Steinbeck's better work. In comparison with East of Eden - and this is just my opinion - this piece is thematically less ambitious, but feels more focused, the character development feels more human and personal, and stylistically, it comes across crisper.</em></p>
+                <p>Every wave of technological progress produces a cohort of winners and losers. This book is about the latter. Steinbeck's depression-era classic is a brutal, vivid account of life upon receiving the short end of the stick of automation: families displaced, livelihoods lost, starving children forced to scramble for bare scraps. It makes for a chilling reminder that our reality today is quite good. Yet the have-nots enjoy their own kind of perverse beauty. Small wins feel like big wins: enough gas for the road, side-meat on the dinner table tonight, a job opening picking fruit for a few days. Central to Steinbeck's work is the notion that the most good comes out of the people who have the least. This makes The Grapes of Wrath timeless. Indeed, the book plays on themes we are only all too familiar with: poor vs. rich, labor vs. capital, struggle vs. comfort, etc.</p>
+                <p>As I read, I couldn't help but think about what this book might look like written 20-30 years from now. Might AI and automation replace knowledge workers? How will the displacement of American jobs and off-shoring play out? Will a permanent underclass be created by our current technological wave, or will there be plenty for everybody? Starvation in America is an unfathomable occurrence today - an eradication made possible largely by modern agriculture (read: machinery and chemicals). Yet even as all boats were lifted by the tide of the agricultural revolution, inequality and class divide only became exaggerated. Those who owned property and machinery did well, and those who did not unsurprisingly did badly. What, if any, will be the defining characteristic of the class divide of the future? Will it continue to be ownership and capital, or will it be intellect, the knowledge and wherewithal to leverage AI to learn, to build and to make money? I believe these technologies can have profound consequences on bridging pre-existing inequality (i.e., you can now have a world-class doctor, tutor, legal advisor, and therapist in your pocket for $20/month, which feels affordable for most).</p>
+                <p>Sadly, the reverse is not only possible, but more likely. If you have a predisposition to learning, to building, to bettering oneself, AI gives you a powerful set of tools to turbo-charge your progress. But if you are lazy and generally unmotivated, AI pushes you further down that rabbit hole. The algorithm feeds you more addicting, brain-rotting material. AI chatbots destroy your ability to critically think. They chip away at your efficacy as a communicator - verbal and written, both online and in real-life. I encourage anyone who may fall into this second bucket to fight the instinct to go brain-off. Otherwise, I expect a huge divergence in achievement, productivity, and general self-betterment to arise between those who are disciplined and those who are not. And if productivity generally translates into wealth, it's easy to visualize class divide and inequality becoming exaggerated. A new underclass may be created this way, continuing the cycle.</p>
+                <p>Anyways, moving on. Stylistically, The Grapes of Wrath reads how you would expect a Steinbeck to read. The classical American country lifestyle and culture is far from that in which I was raised. Lower and middle-class America, in Steinbeck's account, is gruff and ragged, sickly, dirty, and even violent. But it is also beautiful, and Steinbeck is adept at making you feel its beauty. Tom and Ma exemplify his American ideal: fiercely family-oriented, passionate, positively naive, and hopeful beyond measure. They take nothing for granted, and religiously believe one can change their own destiny.</p>
+                <p>Perhaps we all can.</p>
+            </div>
+        </details>
+
+        <details class="book-review">
+            <summary>
+                <span class="book-title">East of Eden</span>
+                <span class="book-author">by John Steinbeck</span>
+            </summary>
+            <div class="review-content">
+                <p>There's something inherently valuable about good literature. I can't quite put my finger on it, or describe it perfectly nor crisply with words, but sometimes it just feels right to read. You certainly don't learn much of practical use, but that's probably not the point anyways. It's good for the soul.</p>
+                <p>Steinbeck is good literature. It's probably not a coincidence that his name consistently re-emerged when I was looking for the right starting point to explore American literary canon. He is obviously gifted stylistically. I'm not sure I've come across an author who can as vividly describe a singular piece of nature as he does. There is a difference between painting a picture to describe a place, a feeling, or an experience versus verbally teleporting the reader into the snapshot of space or time itself. Steinbeck does the latter.</p>
+                <p>In retrospect, I actually wish I would've saved East of Eden til later on - it's supposed to be Steinbeck's magnum opus, the written culmination of everything he's learned in crafting fiction. Oh well, I suppose the reverse will have to do!</p>
+                <p>East of Eden unsurprisingly carries a strong biblical undertone, the central theme being that of timshel. Timshel is the notion that we are empowered to overcome sin (or to succumb to it), that we are not predestined to our fates, that it is within our control to do good or evil. It is an optimistic and lively view that I admire. Timshel empowers one to break free of unfortunate circumstances, to redefine and reconstruct our lives in a way we see fit. Though he requires guidance from Lee (my favorite character), Cal embodies this principle. He is disliked from birth. His mother is a prostitute who then commits suicide. His father is incompetent and absent. He has never really mattered, especially compared to his twin brother Aron. But the book dedicates itself to his character development. And by the end he is arguably the only character that matters - or at least the one who matters most. He breaks free of the mold of his family. He has his mother Cathy's blood (and appetite for destruction) in him, but that's not who he is. It is a conscious, never-ending battle he brutally fights with himself.</p>
+                <p>And it is beautiful when Steinbeck hints at his gradual victory. With all the odds stacked against you, thou mayest choose to go down the winning route, or instead follow the least resistant path. What will you choose?</p>
+            </div>
+        </details>
+
+        <details class="book-review">
+            <summary>
+                <span class="book-title">The Changing World Order</span>
+                <span class="book-author">by Ray Dalio</span>
+            </summary>
+            <div class="review-content">
+                <p>If beating a dead horse were a competition, Ray Dalio might be the world record holder. He is verbose, repetitive, and his prose isn't particularly entertaining. Yet this is the only book I have re-read (to the best of my memory) twice - at least in the last 10 years. Its message is timeless - and today especially - extremely relevant.</p>
+                <p>The core argument is that every empire throughout history has experienced a cycle of rise and decline (in the time frame of ~150-300 years), characterized initially by rising education levels, innovation, and military prowess, which then translate into reserve currency power, wealth and a period of prosperity. These good times never last forever: as internal / external conflict increases, as debt levels rise, as constituents become more wasteful and less productive, and as challenger powers come into the picture, the leading country's position is increasingly jeopardized.</p>
+                <p>This was the inescapable fate of the Chinese, Dutch, and British empires before, and the U.S. may not be an exception. Given Ray's background, he naturally spends a ton of time on debt cycles and reserve currency status. I had under-appreciated the importance of owning (and being able to create more of) the currency everyone in the world wants to own, save, transact in, and invest in. This gifts the U.S. the exclusive privilege of borrowing at cheaper rates - which means more firepower to invest with. But it's also a double edged sword.</p>
+                <p>It's easy to imagine the status quo - a world in which the U.S. dominates - as the forever outcome. Zoom out a tad, however, and you'll see that U.S. relevancy only occupies a tiny fraction of world history, and that a decline is inevitable. These forces are powerful and many markers of the U.S.'s decline are already well under-way. Critics argue that Ray is a doomer and a China bull, which to be fair, is credible. But it's hard to deny that the fiscal, social, and geopolitical position of the U.S. today creates cause for worry.</p>
+                <p>The natural question after reading this book is, what next? And how should I invest and plan ahead? Depends what you believe. The U.S. isn't likely to crumble anytime in the near future, but diversifying out of 1) the U.S. geographically and into emerging markets (equities, currencies, and debt); and 2) out of fiat currency and into hard currency and commodities (i.e. gold) are probably directionally good bets to make.</p>
+                <p>I'll be thinking of the concepts in this book frequently, and am curious to see how the big cycle plays out for the U.S. throughout the course of my lifetime.</p>
+            </div>
+        </details>
+
+        <details class="book-review">
+            <summary>
+                <span class="book-title">The Power Broker</span>
+                <span class="book-author">by Robert Caro</span>
+            </summary>
+            <div class="review-content">
+                <p>This was a beast of a book. While not necessarily an easy read at times, Caro is stylistically gifted at transforming what appears to be a very mundane topic on the surface (NYC public works and politics), into a serious page-turner (a lot of turns were needed!)</p>
+                <p>I was impressed, above all, at the level of research Caro put in - his ability to make you feel like you were in the room, as a part of conversations between officials, a fly on the tables on which big decisions were made, across a time horizon spanning 4 decades and across hundreds of personalities is seriously incredible.</p>
+                <p>As for the subject matter itself, Caro paints Moses in a controversial light to say the least. He all but flat-out accuses him of being a racist, and constantly reminds you of the kind of callous, arrogant, and highly unpleasant figure Robert Moses represents. Not to say he doesn't deserve this treatment. But one starts to wonder, if Moses genuinely did believe he knew better for the public, and given he did achieve a tremendous amount (and probably created more net good than harm for the city), were any of his shortcomings and mistakes justifiable? What would New York City look like without him? Better or worse? It may be an impossible and fruitless thought experiment to run. But there would probably be fewer parks, fewer roads, fewer highways, fewer bridges, and the list goes on...and as beneficiaries of all of the aforementioned in the same city a half-century later, are we better off because of it? As exemplified in the Lindsay mayorship after Moses is stripped of his powers, the city doesn't get much done as quickly without someone like Moses at the helm. Then, one must consider, is action better than inaction, and physical accomplishment better than none - even if the means used in the process are questionable?</p>
+                <p>Regardless of one's perspective on the proper uses of power, one thing is for certain: this book elicits a newfound appreciation and love for New York. There is no coincidence that this is the greatest city in the world. New York is the product of hundreds of years of struggle, one between the constraints imposed by nature and man's willful re-designing and shaping of his surroundings. Robert Moses may have been only one of such shapers, but he very well may have been the most important. It is only thanks to this neverending push-and-pull dynamic that we get to live in this awe-inspiring science experiment of steel, concrete, grass, and trees. I am grateful.</p>
+            </div>
+        </details>
+`;
+
+export default function BookReviewsPage() {
+  return <main dangerouslySetInnerHTML={{ __html: content }} />;
+}
