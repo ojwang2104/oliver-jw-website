@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest",
+    "deploy:main": "bash ./scripts/deploy-main.sh",
     "generate:zm-summary": "node scripts/generate_zm_summary.mjs",
     "generate:aapl-summary": "node scripts/generate_summary_fixture.mjs aapl_q1_fy2026",
     "generate:nvda-summary": "node scripts/generate_summary_fixture.mjs nvda_q3_fy2026",
