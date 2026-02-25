@@ -12,10 +12,6 @@ type EarningsResult = {
 };
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV === 'production') {
-    return Response.json({ error: 'Not found.' }, { status: 404 });
-  }
-
   const body = await request.json().catch(() => ({}));
   const rawTickers = String(body?.tickers ?? '');
   const tickers = normalizeTickers(rawTickers).slice(0, 10);

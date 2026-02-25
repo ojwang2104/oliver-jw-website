@@ -13,10 +13,10 @@ type EarningsResult = {
 
 export function EarningsClient() {
   const [tickers, setTickers] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
   const [results, setResults] = useState<EarningsResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [recipientEmail, setRecipientEmail] = useState('');
-  const [settingsStatus, setSettingsStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -34,67 +34,61 @@ export function EarningsClient() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setStatus(null);
     setLoading(true);
     setResults([]);
 
     try {
-      const res = await fetch('/api/earnings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tickers }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setLoading(false);
+      const [summaryRes, settingsRes] = await Promise.all([
+        fetch('/api/earnings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tickers }),
+        }),
+        fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tickers, recipientEmail }),
+        }),
+      ]);
+
+      const [summaryData, settingsData] = await Promise.all([
+        summaryRes.json().catch(() => ({})),
+        settingsRes.json().catch(() => ({})),
+      ]);
+
+      if (!summaryRes.ok) {
+        setStatus(summaryData?.error ?? 'Unable to summarize right now.');
         return;
       }
-      setResults(data.results ?? []);
-    } catch (err) {
+      if (!settingsRes.ok) {
+        setStatus(settingsData?.error ?? 'Unable to save your subscription settings.');
+        return;
+      }
+
+      setTickers(settingsData.tickers ?? tickers);
+      setRecipientEmail(settingsData.recipientEmail ?? recipientEmail);
+      setResults(summaryData.results ?? []);
+      const welcomeStatus = settingsData?.welcomeEmailSent
+        ? 'Welcome email sent.'
+        : settingsData?.welcomeEmailSent === false
+          ? 'Subscription saved. Welcome email could not be sent.'
+          : 'Subscription saved.';
+      setStatus(`Saved and automation started. ${welcomeStatus}`);
+    } catch {
+      setStatus('Unable to complete request right now.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSaveSettings = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSettingsStatus('Saving...');
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tickers, recipientEmail }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setSettingsStatus(data?.error ?? 'Unable to save settings.');
-        return;
-      }
-      setTickers(data.tickers ?? tickers);
-      setRecipientEmail(data.recipientEmail ?? recipientEmail);
-      setSettingsStatus('Saved.');
-    } catch {
-      setSettingsStatus('Unable to save settings.');
     }
   };
 
   return (
     <div className="earnings-ui">
       <section className="earnings-settings">
-        <h2 className="earnings-section-title">Alert settings</h2>
-        <form className="earnings-form" onSubmit={handleSaveSettings}>
-          <label className="earnings-label" htmlFor="recipientEmail">
-            Recipient email
-          </label>
-          <input
-            id="recipientEmail"
-            name="recipientEmail"
-            className="earnings-input"
-            placeholder="you@domain.com"
-            value={recipientEmail}
-            onChange={(event) => setRecipientEmail(event.target.value)}
-          />
+        <h2 className="earnings-section-title">Track Earnings</h2>
+        <form className="earnings-form" onSubmit={handleSubmit}>
           <label className="earnings-label" htmlFor="tickers">
-            Ticker basket
+            Tickers
           </label>
           <input
             id="tickers"
@@ -104,36 +98,27 @@ export function EarningsClient() {
             value={tickers}
             onChange={(event) => setTickers(event.target.value)}
           />
-          <button className="earnings-button" type="submit">
-            Save settings
-          </button>
-          {settingsStatus ? (
-            <p className="earnings-hint">{settingsStatus}</p>
-          ) : (
-            <p className="earnings-hint">Used by hourly email alerts.</p>
-          )}
-        </form>
-      </section>
 
-      <section className="earnings-settings">
-        <h2 className="earnings-section-title">Try it now</h2>
-      <form className="earnings-form" onSubmit={handleSubmit}>
-        <label className="earnings-label" htmlFor="tickers">
-          Tickers
-        </label>
-        <input
-          id="tickers"
-          name="tickers"
-          className="earnings-input"
-          placeholder="AAPL, MSFT, NVDA"
-          value={tickers}
-          onChange={(event) => setTickers(event.target.value)}
-        />
-        <button className="earnings-button" type="submit" disabled={loading}>
-          {loading ? 'Summarizing...' : 'Summarize'}
-        </button>
-        <p className="earnings-hint">Example: AAPL, MSFT, NVDA</p>
-      </form>
+          <label className="earnings-label" htmlFor="recipientEmail">
+            Email
+          </label>
+          <input
+            id="recipientEmail"
+            name="recipientEmail"
+            className="earnings-input"
+            placeholder="you@domain.com"
+            value={recipientEmail}
+            onChange={(event) => setRecipientEmail(event.target.value)}
+          />
+
+          <button className="earnings-button" type="submit" disabled={loading}>
+            {loading ? 'Summarizing...' : 'Summarize'}
+          </button>
+          <p className="earnings-hint">
+            Enter tickers individually or comma-separated. Example: <code>AAPL, MSFT, NVDA</code>
+          </p>
+          {status ? <p className="request-status">{status}</p> : null}
+        </form>
       </section>
 
       <section className="earnings-results" aria-live="polite">
