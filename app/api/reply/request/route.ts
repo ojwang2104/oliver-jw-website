@@ -11,10 +11,6 @@ function normalizeEmail(input: string | null) {
 }
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV === 'production') {
-    return Response.json({ error: 'Not found.' }, { status: 404 });
-  }
-
   const body = await request.json().catch(() => ({}));
   const recipientEmail = normalizeEmail(
     typeof body?.recipientEmail === 'string' ? body.recipientEmail : null,
