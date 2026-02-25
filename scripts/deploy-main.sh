@@ -29,14 +29,14 @@ fi
 echo "Pushing branch ${CURRENT_BRANCH}..."
 git push -u origin "$CURRENT_BRANCH"
 
-if gh pr view --head "$CURRENT_BRANCH" --json number >/dev/null 2>&1; then
-  PR_NUMBER="$(gh pr view --head "$CURRENT_BRANCH" --json number --jq .number)"
+PR_NUMBER="$(gh pr list --head "$CURRENT_BRANCH" --base "$BASE_BRANCH" --state open --json number --jq '.[0].number' 2>/dev/null || true)"
+if [[ -n "${PR_NUMBER}" && "${PR_NUMBER}" != "null" ]]; then
   echo "PR #${PR_NUMBER} already exists. Merging..."
 else
   TITLE="${PR_TITLE:-Deploy ${CURRENT_BRANCH} to ${BASE_BRANCH}}"
   BODY="${PR_BODY:-Automated PR created from terminal.}"
   gh pr create --base "$BASE_BRANCH" --head "$CURRENT_BRANCH" --title "$TITLE" --body "$BODY" >/dev/null
-  PR_NUMBER="$(gh pr view --head "$CURRENT_BRANCH" --json number --jq .number)"
+  PR_NUMBER="$(gh pr list --head "$CURRENT_BRANCH" --base "$BASE_BRANCH" --state open --json number --jq '.[0].number')"
   echo "Created PR #${PR_NUMBER}."
 fi
 
