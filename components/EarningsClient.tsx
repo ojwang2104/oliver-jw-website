@@ -69,12 +69,29 @@ export function EarningsClient() {
       setTickers(settingsData.tickers ?? tickers);
       setRecipientEmail(settingsData.recipientEmail ?? recipientEmail);
       setResults(summaryData.results ?? []);
+
+      const immediateEmailRes = await fetch('/api/reply/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientEmail: settingsData.recipientEmail ?? recipientEmail,
+          tickers: settingsData.tickers ?? tickers,
+        }),
+      });
+      const immediateEmailData = await immediateEmailRes.json().catch(() => ({}));
+
+      const immediateEmailStatus =
+        immediateEmailRes.ok && !immediateEmailData?.deduped
+          ? 'Summary email sent now.'
+          : immediateEmailRes.ok && immediateEmailData?.deduped
+            ? 'A recent summary request already exists; email may be suppressed.'
+            : 'Immediate summary email failed.';
       const welcomeStatus = settingsData?.welcomeEmailSent
         ? 'Welcome email sent.'
         : settingsData?.welcomeEmailSent === false
           ? 'Subscription saved. Welcome email could not be sent.'
           : 'Subscription saved.';
-      setStatus(`Saved and automation started. ${welcomeStatus}`);
+      setStatus(`Saved and automation started. ${welcomeStatus} ${immediateEmailStatus}`);
     } catch {
       setStatus('Unable to complete request right now.');
     } finally {
