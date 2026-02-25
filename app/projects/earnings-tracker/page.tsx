@@ -19,7 +19,8 @@ export default function EarningsTrackerProjectPage() {
 
       <h2>Earnings Tracker</h2>
       <p>
-        Pull the latest earnings press release, detect quarter/fiscal period, and run a summary workflow.
+        Enter your ticker basket and email, then summarize and subscribe in one step. You will start
+        receiving automated earnings updates and get a welcome email with the tickers you added.
       </p>
 
       <EarningsClient />
