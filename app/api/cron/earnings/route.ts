@@ -1,6 +1,8 @@
 import { Redis } from '@upstash/redis';
 import { getDailyEarningsCandidates, getLatestPressRelease, normalizeTickers } from '../../../../lib/earnings';
-import { validateSummaryPeriodCoverage } from '../../../../lib/summaryQuality';
+import { enforceRevenueDisclosure, validateSummaryPeriodCoverage } from '../../../../lib/summaryQuality';
+import { isLikelyEarningsPressRelease } from '../../../../lib/earningsGuards';
+import { shouldExcludeAutomatedTicker, type TickerProfile } from '../../../../lib/automatedTickerFilter';
 
 export const runtime = 'nodejs';
 
@@ -18,6 +20,17 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM = process.env.RESEND_FROM ?? 'OJW Earnings Summarizer <mail@oliverjw.me>';
 const CRON_SECRET = process.env.CRON_SECRET;
+const YAHOO_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  Accept: 'application/json,text/plain,*/*',
+};
+const NASDAQ_HEADERS = {
+  'User-Agent': 'Mozilla/5.0',
+  Accept: 'application/json, text/plain, */*',
+  Origin: 'https://www.nasdaq.com',
+  Referer: 'https://www.nasdaq.com/',
+};
 
 type LastSeenMap = Record<string, string>;
 const METRIC_REGEX =
@@ -37,6 +50,39 @@ function extractOutputText(data: any) {
   return parts.join('\n').trim();
 }
 
+async function fetchTickerProfilesFromNasdaq(tickers: string[]) {
+  const profiles = new Map<string, TickerProfile>();
+  if (tickers.length === 0) return profiles;
+  const res = await fetch('https://api.nasdaq.com/api/screener/stocks?tableonly=true&download=true', {
+    headers: NASDAQ_HEADERS,
+  });
+  if (!res.ok) return profiles;
+  const data = await res.json().catch(() => null);
+  const rows = data?.data?.rows;
+  if (!Array.isArray(rows)) return profiles;
+  const wanted = new Set(tickers.map((ticker) => ticker.toUpperCase()));
+  for (const row of rows) {
+    const symbol = String(row?.symbol ?? '').toUpperCase();
+    if (!wanted.has(symbol)) continue;
+    const marketCap = Number.parseFloat(String(row?.marketCap ?? '').replace(/,/g, ''));
+    profiles.set(symbol, {
+      marketCap: Number.isFinite(marketCap) ? marketCap : null,
+      sector: typeof row?.sector === 'string' ? row.sector : null,
+      industry: typeof row?.industry === 'string' ? row.industry : null,
+    });
+  }
+  return profiles;
+}
+
+async function fetchMarketCapsFromNasdaq(tickers: string[]) {
+  const caps = new Map<string, number>();
+  const profiles = await fetchTickerProfilesFromNasdaq(tickers);
+  for (const [ticker, profile] of profiles.entries()) {
+    if (profile.marketCap != null) caps.set(ticker, profile.marketCap);
+  }
+  return caps;
+}
+
 async function fetchPreviousCloseMarketCaps(tickers: string[]) {
   const caps = new Map<string, number>();
   if (tickers.length === 0) return caps;
@@ -44,7 +90,7 @@ async function fetchPreviousCloseMarketCaps(tickers: string[]) {
   for (let i = 0; i < tickers.length; i += chunkSize) {
     const chunk = tickers.slice(i, i + chunkSize);
     const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(chunk.join(','))}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: YAHOO_HEADERS });
     if (!res.ok) continue;
     const data = await res.json().catch(() => null);
     const rows = data?.quoteResponse?.result;
@@ -65,6 +111,13 @@ async function fetchPreviousCloseMarketCaps(tickers: string[]) {
           ? marketCap
           : Number.NaN;
       if (Number.isFinite(resolved)) caps.set(symbol, resolved);
+    }
+  }
+  if (caps.size < tickers.length) {
+    const missing = tickers.filter((ticker) => !caps.has(ticker));
+    const nasdaqCaps = await fetchMarketCapsFromNasdaq(missing);
+    for (const [ticker, cap] of nasdaqCaps.entries()) {
+      caps.set(ticker, cap);
     }
   }
   return caps;
@@ -118,18 +171,22 @@ async function summarizeDocument(params: {
   const firstPass = await runSummary(baseSystemPrompt);
   if (!firstPass) return null;
 
-  const firstValidation = validateSummaryPeriodCoverage(firstPass, clipped);
-  if (firstValidation.ok) return firstPass;
+  const firstPassRepaired = enforceRevenueDisclosure(firstPass, clipped);
+  const firstPassOutput = firstPassRepaired ?? firstPass;
+  const firstValidation = validateSummaryPeriodCoverage(firstPassOutput, clipped);
+  if (firstValidation.ok) return firstPassOutput;
 
   const repairPrompt = `${baseSystemPrompt} Your previous answer missed dual-period coverage for: ${firstValidation.missing.join(
     ', ',
   )}. Rewrite so these metrics explicitly include both quarterly and full-year values when present in source.`;
 
   const secondPass = await runSummary(repairPrompt);
-  if (!secondPass) return firstPass;
+  if (!secondPass) return firstPassOutput;
 
-  const secondValidation = validateSummaryPeriodCoverage(secondPass, clipped);
-  return secondValidation.ok ? secondPass : firstPass;
+  const secondPassRepaired = enforceRevenueDisclosure(secondPass, clipped);
+  const secondPassOutput = secondPassRepaired ?? secondPass;
+  const secondValidation = validateSummaryPeriodCoverage(secondPassOutput, clipped);
+  return secondValidation.ok ? secondPassOutput : firstPassOutput;
 }
 
 async function summarizeTranscriptPdf(params: {
@@ -213,11 +270,12 @@ async function summarizeTranscriptPdf(params: {
 
 function buildSummaryHtml(summaryText: string | null) {
   if (!summaryText) return '<p>No summary available.</p>';
-  const bullets = summaryText
+  const cleaned = normalizeDisplayText(summaryText);
+  const bullets = cleaned
     .split('\n')
     .map((line) => line.replace(/^[-•*]\s*/, '').trim())
     .filter(Boolean);
-  if (bullets.length === 0) return `<p>${formatFinanceText(summaryText)}</p>`;
+  if (bullets.length === 0) return `<p>${formatFinanceText(cleaned)}</p>`;
   return `<ul>${bullets.map((item) => `<li>${formatFinanceText(item)}</li>`).join('')}</ul>`;
 }
 
@@ -243,7 +301,7 @@ function decodeHtmlEntities(input: string) {
     ldquo: '"',
     rdquo: '"',
   };
-  return input.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (full, entity: string) => {
+  return input.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);?/g, (full, entity: string) => {
     const lower = entity.toLowerCase();
     if (lower.startsWith('#x')) {
       const codePoint = Number.parseInt(lower.slice(2), 16);
@@ -257,8 +315,24 @@ function decodeHtmlEntities(input: string) {
   });
 }
 
+function normalizeDisplayText(input: string) {
+  return decodeHtmlEntities(input)
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) =>
+      line
+        .replace(/^#{1,6}\s*/g, '')
+        .replace(/\s*#\s*#\s*#\s*/g, ' ')
+        .trim(),
+    )
+    .join('\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function formatFinanceText(input: string) {
-  const escaped = escapeHtml(decodeHtmlEntities(input));
+  const escaped = escapeHtml(normalizeDisplayText(input));
   const numberBolded = escaped.replace(NUMBER_REGEX, (match) => `<strong>${match}</strong>`);
   return numberBolded.replace(METRIC_REGEX, (match) => `<strong>${match}</strong>`);
 }
@@ -395,11 +469,20 @@ export async function GET(request: Request) {
   const manualTickers = tickersRaw ? normalizeTickers(tickersRaw) : [];
   const dynamicCandidates = await getDailyEarningsCandidates();
   const dynamicTickerSet = new Set(dynamicCandidates.map((item) => item.ticker));
+  const tickerProfiles = await fetchTickerProfilesFromNasdaq([
+    ...new Set([...manualTickers, ...dynamicTickerSet]),
+  ]);
   const marketCaps = await fetchPreviousCloseMarketCaps([...dynamicTickerSet]);
   const dynamicTickers = [...dynamicTickerSet].filter(
     (ticker) => (marketCaps.get(ticker) ?? 0) >= MIN_MARKET_CAP,
   );
-  const tickers = [...new Set([...manualTickers, ...dynamicTickers])];
+  const tickers = [...new Set([...manualTickers, ...dynamicTickers])].filter(
+    (ticker) => {
+      const profile = tickerProfiles.get(ticker) ?? null;
+      const resolvedMarketCap = marketCaps.get(ticker) ?? profile?.marketCap ?? null;
+      return !shouldExcludeAutomatedTicker(ticker, profile, resolvedMarketCap);
+    },
+  );
   if (tickers.length === 0) {
     return Response.json({
       sent: 0,
@@ -428,6 +511,33 @@ export async function GET(request: Request) {
         debugInfo.push({
           ticker,
           status: 'stale_filing_skipped',
+          company: result.companyName ?? null,
+          filingDate: result.pressReleaseFilingDate ?? null,
+        });
+      }
+      continue;
+    }
+    if (result.pressReleaseIsPrevious) {
+      if (debug) {
+        debugInfo.push({
+          ticker,
+          status: 'previous_release_skipped',
+          company: result.companyName ?? null,
+          filingDate: result.pressReleaseFilingDate ?? null,
+        });
+      }
+      continue;
+    }
+    if (
+      !isLikelyEarningsPressRelease({
+        quarterLabel: result.quarterLabel,
+        pressReleaseText: result.pressReleaseText,
+      })
+    ) {
+      if (debug) {
+        debugInfo.push({
+          ticker,
+          status: 'non_earnings_filing_skipped',
           company: result.companyName ?? null,
           filingDate: result.pressReleaseFilingDate ?? null,
         });

@@ -1,7 +1,7 @@
 import { getLatestPressRelease, normalizeTickers } from '../../../../lib/earnings';
 import { Redis } from '@upstash/redis';
-import { createHash } from 'node:crypto';
-import { validateSummaryPeriodCoverage } from '../../../../lib/summaryQuality';
+import { enforceRevenueDisclosure, validateSummaryPeriodCoverage } from '../../../../lib/summaryQuality';
+import { replyRequestFingerprint } from '../../../../lib/earningsGuards';
 
 export const runtime = 'nodejs';
 
@@ -9,11 +9,15 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM = process.env.RESEND_FROM ?? 'OJW Earnings Summarizer <mail@oliverjw.me>';
 const INBOUND_SECRET = process.env.RESEND_INBOUND_SECRET;
-const TEST_RECIPIENT_EMAIL = 'oliverjwca@gmail.com';
+const REPLY_RECIPIENT_EMAIL = process.env.REPLY_RECIPIENT_EMAIL ?? process.env.DEFAULT_RECIPIENT_EMAIL ?? null;
 const REPLY_DEDUPE_PREFIX = 'earnings:reply_dedupe';
 const REPLY_DEDUPE_TTL_SECONDS = 60 * 10;
 const REQUEST_DEDUPE_PREFIX = 'earnings:reply_request';
 const REQUEST_DEDUPE_TTL_SECONDS = 60 * 60 * 24;
+const REQUEST_CONTENT_DEDUPE_PREFIX = 'earnings:reply_request_content';
+const REQUEST_CONTENT_DEDUPE_TTL_SECONDS = 60 * 60 * 24;
+const OUTBOUND_DEDUPE_PREFIX = 'earnings:reply_outbound';
+const OUTBOUND_DEDUPE_TTL_SECONDS = 60 * 60 * 6;
 const redis = Redis.fromEnv();
 
 const METRIC_REGEX =
@@ -79,18 +83,22 @@ async function summarizeDocument(params: {
   const firstPass = await runSummary(baseSystemPrompt);
   if (!firstPass) return null;
 
-  const firstValidation = validateSummaryPeriodCoverage(firstPass, clipped);
-  if (firstValidation.ok) return firstPass;
+  const firstPassRepaired = enforceRevenueDisclosure(firstPass, clipped);
+  const firstPassOutput = firstPassRepaired ?? firstPass;
+  const firstValidation = validateSummaryPeriodCoverage(firstPassOutput, clipped);
+  if (firstValidation.ok) return firstPassOutput;
 
   const repairPrompt = `${baseSystemPrompt} Your previous answer missed dual-period coverage for: ${firstValidation.missing.join(
     ', ',
   )}. Rewrite so these metrics explicitly include both quarterly and full-year values when present in source.`;
 
   const secondPass = await runSummary(repairPrompt);
-  if (!secondPass) return firstPass;
+  if (!secondPass) return firstPassOutput;
 
-  const secondValidation = validateSummaryPeriodCoverage(secondPass, clipped);
-  return secondValidation.ok ? secondPass : firstPass;
+  const secondPassRepaired = enforceRevenueDisclosure(secondPass, clipped);
+  const secondPassOutput = secondPassRepaired ?? secondPass;
+  const secondValidation = validateSummaryPeriodCoverage(secondPassOutput, clipped);
+  return secondValidation.ok ? secondPassOutput : firstPassOutput;
 }
 
 async function summarizeTranscriptPdf(params: {
@@ -186,7 +194,7 @@ function decodeHtmlEntities(input: string) {
     ldquo: '"',
     rdquo: '"',
   };
-  return input.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (full, entity: string) => {
+  return input.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);?/g, (full, entity: string) => {
     const lower = entity.toLowerCase();
     if (lower.startsWith('#x')) {
       const codePoint = Number.parseInt(lower.slice(2), 16);
@@ -200,19 +208,36 @@ function decodeHtmlEntities(input: string) {
   });
 }
 
+function normalizeDisplayText(input: string) {
+  return decodeHtmlEntities(input)
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) =>
+      line
+        .replace(/^#{1,6}\s*/g, '')
+        .replace(/\s*#\s*#\s*#\s*/g, ' ')
+        .trim(),
+    )
+    .join('\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function formatFinanceText(input: string) {
-  const escaped = escapeHtml(decodeHtmlEntities(input));
+  const escaped = escapeHtml(normalizeDisplayText(input));
   const numberBolded = escaped.replace(NUMBER_REGEX, (match) => `<strong>${match}</strong>`);
   return numberBolded.replace(METRIC_REGEX, (match) => `<strong>${match}</strong>`);
 }
 
 function buildSummaryHtml(summaryText: string | null) {
   if (!summaryText) return '<p>No summary available.</p>';
-  const bullets = summaryText
+  const cleaned = normalizeDisplayText(summaryText);
+  const bullets = cleaned
     .split('\n')
     .map((line) => line.replace(/^[-•*]\s*/, '').trim())
     .filter(Boolean);
-  if (bullets.length === 0) return `<p>${formatFinanceText(summaryText)}</p>`;
+  if (bullets.length === 0) return `<p>${formatFinanceText(cleaned)}</p>`;
   return `<ul>${bullets.map((item) => `<li>${formatFinanceText(item)}</li>`).join('')}</ul>`;
 }
 
@@ -481,16 +506,12 @@ export async function POST(request: Request) {
       .slice(0, 20);
 
   const explicitRequestId = extractInboundRequestId(payload, headerRequestId);
-  const fallbackRequestId = createHash('sha256')
-    .update(
-      JSON.stringify({
-        sender: sender.toLowerCase(),
-        subject: replySubject.toUpperCase(),
-        tickers,
-        body: replyText.slice(0, 4000),
-      }),
-    )
-    .digest('hex');
+  const fallbackRequestId = replyRequestFingerprint({
+    sender,
+    subject: replySubject,
+    tickers,
+    replyText,
+  });
   const requestId = explicitRequestId ?? `fallback:${fallbackRequestId}`;
   const requestDedupeKey = `${REQUEST_DEDUPE_PREFIX}:${requestId}`;
   const requestReserved = await redis.set(requestDedupeKey, sender, {
@@ -508,6 +529,25 @@ export async function POST(request: Request) {
       deduped: true,
       tickers,
       reason: 'duplicate_request',
+    });
+  }
+
+  const requestContentDedupeKey = `${REQUEST_CONTENT_DEDUPE_PREFIX}:${fallbackRequestId}`;
+  const requestContentReserved = await redis.set(requestContentDedupeKey, sender, {
+    nx: true,
+    ex: REQUEST_CONTENT_DEDUPE_TTL_SECONDS,
+  });
+  if (!requestContentReserved) {
+    console.info('[reply/inbound] duplicate content request suppressed', {
+      sender,
+      tickers,
+      requestId,
+    });
+    return Response.json({
+      processed: true,
+      deduped: true,
+      tickers,
+      reason: 'duplicate_content_request',
     });
   }
 
@@ -534,7 +574,7 @@ export async function POST(request: Request) {
   console.info('[reply/inbound] request parsed', {
     sender,
     tickers,
-    routedTo: TEST_RECIPIENT_EMAIL,
+    routedTo: REPLY_RECIPIENT_EMAIL ?? sender,
   });
 
   if (tickers.length === 0) {
@@ -544,7 +584,7 @@ export async function POST(request: Request) {
       payloadKeys: Object.keys(payload ?? {}),
     });
     const noTickerSend = await sendEmail({
-      to: TEST_RECIPIENT_EMAIL,
+      to: REPLY_RECIPIENT_EMAIL ?? sender,
       subject: 'No valid tickers found in your reply',
       html: '<p>Reply with comma-separated tickers, for example: <code>AAPL, MSFT, NVDA</code>.</p>',
     });
@@ -557,8 +597,10 @@ export async function POST(request: Request) {
   }
 
   const sections: string[] = [];
+  const markers: string[] = [];
   for (const ticker of tickers) {
     const result = await getLatestPressRelease(ticker);
+    markers.push(result.accessionNumber ?? result.pressReleaseUrl ?? `${ticker}:none`);
     if (!result.pressReleaseUrl) {
       sections.push(`<h3>${ticker}</h3><p>No earnings press release found.</p>`);
       continue;
@@ -613,23 +655,48 @@ export async function POST(request: Request) {
     );
   }
 
+  const outboundFingerprint = replyRequestFingerprint({
+    sender,
+    subject: `Requested earnings summaries: ${tickers.join(', ')}`,
+    tickers,
+    replyText: markers.sort().join('|'),
+  });
+  const outboundDedupeKey = `${OUTBOUND_DEDUPE_PREFIX}:${outboundFingerprint}`;
+  const outboundReserved = await redis.set(outboundDedupeKey, sender, {
+    nx: true,
+    ex: OUTBOUND_DEDUPE_TTL_SECONDS,
+  });
+  if (!outboundReserved) {
+    console.info('[reply/inbound] duplicate outbound send suppressed', {
+      sender,
+      tickers,
+    });
+    return Response.json({
+      processed: true,
+      deduped: true,
+      tickers,
+      reason: 'duplicate_outbound_send',
+    });
+  }
+
   const sendResult = await sendEmail({
-    to: TEST_RECIPIENT_EMAIL,
+    to: REPLY_RECIPIENT_EMAIL ?? sender,
     subject: `Requested earnings summaries: ${tickers.join(', ')}`,
     html: sections.join('<hr />'),
   });
 
   if (!sendResult.ok) {
+    await redis.del(outboundDedupeKey);
     console.error('[reply/inbound] summary reply email failed', {
       sender,
-      routedTo: TEST_RECIPIENT_EMAIL,
+      routedTo: REPLY_RECIPIENT_EMAIL ?? sender,
       tickers,
       sendResult,
     });
   } else {
     console.info('[reply/inbound] summary reply email sent', {
       sender,
-      routedTo: TEST_RECIPIENT_EMAIL,
+      routedTo: REPLY_RECIPIENT_EMAIL ?? sender,
       tickers,
       resendStatus: sendResult.status,
       resendId: sendResult.id,

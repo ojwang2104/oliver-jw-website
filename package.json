@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest",
     "generate:zm-summary": "node scripts/generate_zm_summary.mjs",
     "generate:aapl-summary": "node scripts/generate_summary_fixture.mjs aapl_q1_fy2026",

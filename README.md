@@ -1,51 +1,53 @@
-# Oliver JW Website
+# Oliver JW Website + Earnings Automation
 
-Personal website built with Next.js, including a Projects section and an earnings tracker app.
+This repository contains a personal Next.js website and an auditable earnings automation pipeline.
 
-## Live Site
-- https://oliverjw.me
+The automation scope for public review is the **daily morning earnings sender**:
+- [route.ts](/Users/oliverwang/oliver-jw-website/app/api/cron/earnings/route.ts)
 
-## Features
-- Personal pages (projects, writings, media, reading lists)
-- Earnings tracker widget under Projects
-- Earnings email workflow (Resend + Vercel cron)
-- Press release + transcript discovery and LLM summaries
+## What The Morning Automation Does
+1. Finds recent earnings reporters from SEC 8-K filings.
+2. Applies market-cap and sector/industry filters.
+3. Excludes pharma/biotech by default unless market cap is `> $100B`.
+4. Pulls press release/transcript materials.
+5. Produces a structured earnings summary.
+6. Sends one email per ticker via Resend.
+7. Deduplicates sends with Redis.
 
-## Tech Stack
-- Next.js
-- TypeScript
-- Vercel
-- Resend
-- Upstash Redis
-- OpenAI API
+## Architecture
+- Trigger: Vercel cron -> `/api/cron/earnings`
+- Discovery: SEC + Nasdaq + Yahoo
+- Summarization: OpenAI Responses API
+- Outbound: Resend email API
+- State/locks: Upstash Redis
+
+See:
+- [AUDIT.md](/Users/oliverwang/oliver-jw-website/docs/AUDIT.md)
+- [OPERATIONS.md](/Users/oliverwang/oliver-jw-website/docs/OPERATIONS.md)
+- [SECURITY.md](/Users/oliverwang/oliver-jw-website/SECURITY.md)
 
 ## Local Setup
-1. Clone repo
-2. Install dependencies
-3. Add environment variables
-4. Run dev server
-
 ```bash
-npm install
+npm ci
+cp .env.example .env.local
 npm run dev
 ```
 
-## Environment Variables
-Create `.env.local`:
-
-```env
-OPENAI_API_KEY=your_key_here
-RESEND_API_KEY=your_key_here
-UPSTASH_REDIS_REST_URL=your_url_here
-UPSTASH_REDIS_REST_TOKEN=your_token_here
-CRON_SECRET=your_secret_here
-```
-
-## Testing
+## Test
 ```bash
-npm test
+npx vitest run
 ```
+
+## CI
+GitHub Actions runs:
+- `npm ci`
+- `npm run lint`
+- `npx vitest run`
+- `npm run build`
+
+## Environment Variables
+Use `.env.example` as the source of truth.
 
 ## Notes
-- Do not commit secrets (`.env.local` is gitignored).
-- This project is actively being improved.
+- Never commit `.env.local` or live secrets.
+- Lockfile (`package-lock.json`) is committed for reproducible installs.
