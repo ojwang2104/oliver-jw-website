@@ -69,7 +69,72 @@ export type DailyEarningsCandidate = {
   cik: string;
   accessionNumber: string;
   filingDate: string;
+  filingPath: string | null;
 };
+
+async function collect8KFilingsForDate(date: Date) {
+  const parts = formatEdgarDate(date);
+  const month = Number.parseInt(parts.mm, 10);
+  const qtr = getEdgarQuarter(month);
+  const idxUrl = `${SEC_ARCHIVES}/Archives/edgar/daily-index/${parts.yyyy}/QTR${qtr}/master.${parts.yyyymmdd}.idx`;
+  const idxText = await fetchTextSoft(idxUrl);
+  if (!idxText) return [];
+  const filings: Array<{ cik: string; filingDate: string; path: string; accessionNumber: string }> = [];
+  for (const line of idxText.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || !trimmed.includes('|')) continue;
+    const split = trimmed.split('|');
+    if (split.length < 5) continue;
+    const form = String(split[2] ?? '').toUpperCase();
+    if (!form.startsWith('8-K')) continue;
+    const cik = normalizeCik(String(split[0] ?? ''));
+    const filingDate = String(split[3] ?? '');
+    const path = String(split[4] ?? '');
+    const accessionNumber = accessionFromPath(path);
+    if (!accessionNumber) continue;
+    filings.push({ cik, filingDate, path, accessionNumber });
+  }
+  return filings;
+}
+
+async function buildEarningsCandidatesFromFilings(
+  filings: Array<{ cik: string; filingDate: string; path: string; accessionNumber: string }>,
+  options: { requireEarningsItem: boolean },
+): Promise<DailyEarningsCandidate[]> {
+  const tickerMap = await getTickerMap();
+  const cikToTicker = new Map<string, string>();
+  for (const [ticker, data] of tickerMap.entries()) {
+    if (!cikToTicker.has(data.cik)) cikToTicker.set(data.cik, ticker);
+  }
+
+  const candidates: DailyEarningsCandidate[] = [];
+  for (const filing of filings) {
+    const ticker = cikToTicker.get(filing.cik);
+    if (!ticker) continue;
+    if (options.requireEarningsItem) {
+      const submissions = await getSubmissions(filing.cik);
+      if (!submissions) continue;
+      if (!hasEarningsItemForAccession(submissions, filing.accessionNumber)) continue;
+    }
+    candidates.push({
+      ticker,
+      cik: filing.cik,
+      accessionNumber: filing.accessionNumber,
+      filingDate: filing.filingDate,
+      filingPath: filing.path ?? null,
+    });
+  }
+
+  const byTicker = new Map<string, DailyEarningsCandidate>();
+  for (const candidate of candidates) {
+    const existing = byTicker.get(candidate.ticker);
+    if (!existing || candidate.filingDate > existing.filingDate) {
+      byTicker.set(candidate.ticker, candidate);
+    }
+  }
+
+  return [...byTicker.values()].sort((a, b) => a.ticker.localeCompare(b.ticker));
+}
 
 export type PressReleaseResult = {
   ticker: string;
@@ -263,9 +328,11 @@ function normalizeCik(raw: string) {
 }
 
 function accessionFromPath(path: string) {
-  const match = path.match(/\/(\d{18})\//);
-  if (!match) return null;
-  const raw = match[1];
+  const dashed = path.match(/(\d{10}-\d{2}-\d{6})/);
+  if (dashed) return dashed[1];
+  const raw18 = path.match(/(\d{18})/);
+  if (!raw18) return null;
+  const raw = raw18[1];
   return `${raw.slice(0, 10)}-${raw.slice(10, 12)}-${raw.slice(12)}`;
 }
 
@@ -288,69 +355,43 @@ function hasEarningsItemForAccession(submissions: any, accessionNumber: string) 
   return false;
 }
 
-export async function getDailyEarningsCandidates(): Promise<DailyEarningsCandidate[]> {
-  const tickerMap = await getTickerMap();
-  const cikToTicker = new Map<string, string>();
-  for (const [ticker, data] of tickerMap.entries()) {
-    if (!cikToTicker.has(data.cik)) cikToTicker.set(data.cik, ticker);
-  }
+export async function isEarningsAccession(cik: string, accessionNumber: string) {
+  const submissions = await getSubmissions(cik);
+  if (!submissions) return false;
+  return hasEarningsItemForAccession(submissions, accessionNumber);
+}
 
+export async function getDailyEarningsCandidates(): Promise<DailyEarningsCandidate[]> {
   const daysToTry = [0, -1, -2];
   const filings: Array<{ cik: string; filingDate: string; path: string; accessionNumber: string }> = [];
 
   for (const offset of daysToTry) {
     const date = new Date();
     date.setDate(date.getDate() + offset);
-    const parts = formatEdgarDate(date);
-    const month = Number.parseInt(parts.mm, 10);
-    const qtr = getEdgarQuarter(month);
-    const idxUrl = `${SEC_ARCHIVES}/Archives/edgar/daily-index/${parts.yyyy}/QTR${qtr}/master.${parts.yyyymmdd}.idx`;
-    const idxText = await fetchTextSoft(idxUrl);
-    if (!idxText) continue;
-
-    for (const line of idxText.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || !trimmed.includes('|')) continue;
-      const split = trimmed.split('|');
-      if (split.length < 5) continue;
-      const form = String(split[2] ?? '').toUpperCase();
-      if (!form.startsWith('8-K')) continue;
-      const cik = normalizeCik(String(split[0] ?? ''));
-      const filingDate = String(split[3] ?? '');
-      const path = String(split[4] ?? '');
-      const accessionNumber = accessionFromPath(path);
-      if (!accessionNumber) continue;
-      filings.push({ cik, filingDate, path, accessionNumber });
-    }
+    filings.push(...(await collect8KFilingsForDate(date)));
     if (filings.length > 0) break;
   }
 
   if (filings.length === 0) return [];
+  return buildEarningsCandidatesFromFilings(filings, { requireEarningsItem: true });
+}
 
-  const candidates: DailyEarningsCandidate[] = [];
-  for (const filing of filings) {
-    const ticker = cikToTicker.get(filing.cik);
-    if (!ticker) continue;
-    const submissions = await getSubmissions(filing.cik);
-    if (!submissions) continue;
-    if (!hasEarningsItemForAccession(submissions, filing.accessionNumber)) continue;
-    candidates.push({
-      ticker,
-      cik: filing.cik,
-      accessionNumber: filing.accessionNumber,
-      filingDate: filing.filingDate,
-    });
+export async function getRecentEarningsCandidates(
+  lookbackDays: number,
+  options: { requireEarningsItem?: boolean } = {},
+): Promise<DailyEarningsCandidate[]> {
+  const days = Math.max(1, Math.min(lookbackDays, 21));
+  const filings: Array<{ cik: string; filingDate: string; path: string; accessionNumber: string }> = [];
+  for (let offset = 0; offset > -days; offset -= 1) {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    filings.push(...(await collect8KFilingsForDate(date)));
   }
+  if (filings.length === 0) return [];
 
-  const byTicker = new Map<string, DailyEarningsCandidate>();
-  for (const candidate of candidates) {
-    const existing = byTicker.get(candidate.ticker);
-    if (!existing || candidate.filingDate > existing.filingDate) {
-      byTicker.set(candidate.ticker, candidate);
-    }
-  }
-
-  return [...byTicker.values()].sort((a, b) => a.ticker.localeCompare(b.ticker));
+  return buildEarningsCandidatesFromFilings(filings, {
+    requireEarningsItem: options.requireEarningsItem ?? true,
+  });
 }
 
 async function findPressRelease(cik: string, filing: FilingInfo) {
@@ -513,7 +554,26 @@ function extractLinks(html: string, baseUrl: string) {
   return [...links];
 }
 
-function scoreTranscriptLink(link: string, quarterLabel: string | null) {
+function transcriptYearPenalty(link: string, filingDate: string | null) {
+  if (!filingDate) return 0;
+  const filingYear = Number.parseInt(filingDate.slice(0, 4), 10);
+  if (!Number.isFinite(filingYear)) return 0;
+  const yearMatches = [...link.matchAll(/\b(20\d{2})\b/g)].map((m) => Number.parseInt(m[1], 10));
+  if (yearMatches.length === 0) return 0;
+  const nearestYear = yearMatches.reduce((best, year) =>
+    Math.abs(year - filingYear) < Math.abs(best - filingYear) ? year : best,
+  );
+  const delta = Math.abs(nearestYear - filingYear);
+  if (delta <= 1) return 0;
+  if (delta === 2) return -5;
+  return -10;
+}
+
+export function scoreTranscriptLink(
+  link: string,
+  quarterLabel: string | null,
+  filingDate: string | null = null,
+) {
   const lower = link.toLowerCase();
   let score = 0;
   if (lower.includes('duckduckgo.com/html/?q=')) score -= 30;
@@ -552,6 +612,7 @@ function scoreTranscriptLink(link: string, quarterLabel: string | null) {
       if (lower.includes(`fy${yearShort}`) || lower.includes(`-${yearShort}`)) score += 2;
     }
   }
+  score += transcriptYearPenalty(lower, filingDate);
   return score;
 }
 
@@ -618,6 +679,7 @@ async function findWebTranscriptCandidates(
   ticker: string,
   quarterLabel: string | null,
   companyName: string | null,
+  filingDate: string | null,
 ) {
   const queries = buildTranscriptQueries(ticker, quarterLabel, companyName);
   const scored = new Map<string, number>();
@@ -628,7 +690,7 @@ async function findWebTranscriptCandidates(
     if (lower.includes('r.jina.ai/http://duckduckgo.com')) return;
     if (lower.includes('external-content.duckduckgo.com')) return;
     if (/\.(ico|png|jpg|jpeg|svg|gif|webp|css|js)(\?|#|$)/.test(lower)) return;
-    const score = scoreTranscriptLink(url, quarterLabel);
+    const score = scoreTranscriptLink(url, quarterLabel, filingDate);
     if (score < 8) return;
     const current = scored.get(url) ?? -Infinity;
     if (score > current) scored.set(url, score);
@@ -771,8 +833,14 @@ async function findWebTranscript(
   ticker: string,
   quarterLabel: string | null,
   companyName: string | null,
+  filingDate: string | null,
 ): Promise<{ url: string | null; text: string | null }> {
-  const candidates = await findWebTranscriptCandidates(ticker, quarterLabel, companyName);
+  const candidates = await findWebTranscriptCandidates(
+    ticker,
+    quarterLabel,
+    companyName,
+    filingDate,
+  );
   if (candidates.length === 0) return { url: null, text: null };
 
   for (const candidate of candidates) {
@@ -820,7 +888,7 @@ async function findIrTranscript(
     if (!html) continue;
     const links = extractLinks(html, pageUrl);
     for (const link of links) {
-      const score = scoreTranscriptLink(link, quarterLabel);
+      const score = scoreTranscriptLink(link, quarterLabel, filingDate);
       if (score >= 8) candidates.push({ url: link, score });
     }
   }
@@ -934,7 +1002,11 @@ function pickTranscriptOverride(ticker: string, filingDate: string | null) {
   return null;
 }
 
-export async function getLatestPressRelease(ticker: string): Promise<PressReleaseResult> {
+export async function getLatestPressRelease(
+  ticker: string,
+  options: { includeTranscript?: boolean } = {},
+): Promise<PressReleaseResult> {
+  const includeTranscript = options.includeTranscript !== false;
   const tickerMap = await getTickerMap();
   const entry = tickerMap.get(ticker);
   if (!entry) {
@@ -994,35 +1066,46 @@ export async function getLatestPressRelease(ticker: string): Promise<PressReleas
       pressReleaseFilingDate = filing.filingDate ?? null;
       pressReleaseIsPrevious = i > 0;
       accessionNumber = filing.accessionNumber ?? null;
-      const transcript = await findTranscript(cik, filing);
-      const secTranscriptText = transcript.text
-        ? cleanDocumentText(stripHtml(transcript.text))
-        : null;
-      const interimQuarter =
-        parseQuarterFromText(pressReleaseText) ?? parseQuarterFromUrl(pressReleaseUrl);
-      const interimFiscalYear = parseFiscalYearFromText(pressReleaseText);
-      const interimNormalizedQuarter =
-        interimQuarter && /^Q[1-4]$/.test(interimQuarter) && interimFiscalYear
-          ? `${interimQuarter} FY${interimFiscalYear}`
-          : interimQuarter;
-      const irTranscript = await findIrTranscript(ticker, interimNormalizedQuarter, filing.filingDate ?? null);
-      const webTranscript =
-        irTranscript.url || transcript.url
-          ? { url: null, text: null }
-          : await findWebTranscript(ticker, interimNormalizedQuarter, companyName);
-      transcriptUrl = irTranscript.url ?? transcript.url ?? webTranscript.url;
-      transcriptText = irTranscript.text
-        ? cleanDocumentText(stripHtml(irTranscript.text))
-        : webTranscript.text
-          ? cleanDocumentText(stripHtml(webTranscript.text))
-          : secTranscriptText;
-      transcriptSource = irTranscript.url
-        ? 'ir'
-        : transcript.url
-          ? 'sec'
-          : webTranscript.url
-            ? 'web'
-            : null;
+      if (includeTranscript) {
+        const transcript = await findTranscript(cik, filing);
+        const secTranscriptText = transcript.text
+          ? cleanDocumentText(stripHtml(transcript.text))
+          : null;
+        const interimQuarter =
+          parseQuarterFromText(pressReleaseText) ?? parseQuarterFromUrl(pressReleaseUrl);
+        const interimFiscalYear = parseFiscalYearFromText(pressReleaseText);
+        const interimNormalizedQuarter =
+          interimQuarter && /^Q[1-4]$/.test(interimQuarter) && interimFiscalYear
+            ? `${interimQuarter} FY${interimFiscalYear}`
+            : interimQuarter;
+        const irTranscript = await findIrTranscript(
+          ticker,
+          interimNormalizedQuarter,
+          filing.filingDate ?? null,
+        );
+        const webTranscript =
+          irTranscript.url || transcript.url
+            ? { url: null, text: null }
+            : await findWebTranscript(
+                ticker,
+                interimNormalizedQuarter,
+                companyName,
+                filing.filingDate ?? null,
+              );
+        transcriptUrl = irTranscript.url ?? transcript.url ?? webTranscript.url;
+        transcriptText = irTranscript.text
+          ? cleanDocumentText(stripHtml(irTranscript.text))
+          : webTranscript.text
+            ? cleanDocumentText(stripHtml(webTranscript.text))
+            : secTranscriptText;
+        transcriptSource = irTranscript.url
+          ? 'ir'
+          : transcript.url
+            ? 'sec'
+            : webTranscript.url
+              ? 'web'
+              : null;
+      }
       break;
     }
   }
@@ -1035,7 +1118,7 @@ export async function getLatestPressRelease(ticker: string): Promise<PressReleas
       ? `${quarterLabel} FY${fiscalYear}`
       : quarterLabel;
 
-  if (!transcriptUrl) {
+  if (includeTranscript && !transcriptUrl) {
     const overrideUrl = pickTranscriptOverride(ticker, pressReleaseFilingDate);
     if (overrideUrl) {
       transcriptUrl = overrideUrl;
