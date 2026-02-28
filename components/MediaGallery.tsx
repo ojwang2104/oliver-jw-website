@@ -2,44 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-const imageFiles = [
-  'IMG_0492.jpeg',
-  'IMG_0494.jpeg',
-  'IMG_0731.jpeg',
-  'IMG_0795.jpeg',
-  'IMG_0908.jpeg',
-  'IMG_0979.jpeg',
-  'IMG_0990.jpeg',
-  'IMG_1035.jpeg',
-  'IMG_1522.jpeg',
-  'IMG_1595.jpeg',
-  'IMG_1615.jpeg',
-  'IMG_1827.jpeg',
-  'IMG_1882.jpeg',
-  'IMG_1885.jpeg',
-  'IMG_1954.jpeg',
-  'IMG_1976.jpeg',
-  'IMG_1981.jpeg',
-  'IMG_2003.jpeg',
-  'IMG_2047.jpeg',
-  'IMG_2301.jpeg',
-  'IMG_2314.jpeg',
-  'IMG_2497.jpeg',
-  'IMG_2674.jpeg',
-  'IMG_2826.jpeg',
-  'IMG_3003.jpeg',
-  'IMG_4932.jpeg',
-  'IMG_5714.jpeg',
-  'IMG_6001.jpeg',
-  'IMG_8096.jpeg',
-  'IMG_8190.jpeg',
-  'IMG_8227.jpeg',
-  '161DB5AC-170F-459D-B904-31EB064733B5.jpeg',
-  '2be095e355344d878577fb6120574761.jpeg',
-];
+type MediaGalleryProps = {
+  imageFiles: string[];
+};
 
-export function MediaGallery() {
-  const images = useMemo(() => imageFiles.map((file) => `/images/${file}`), []);
+export function MediaGallery({ imageFiles }: MediaGalleryProps) {
+  const images = useMemo(() => imageFiles.map((file) => `/images/${file}`), [imageFiles]);
   const [isOpen, setIsOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
