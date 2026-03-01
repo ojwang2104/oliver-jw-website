@@ -33,6 +33,16 @@ export function BottomBar() {
           </svg>
         </a>
       </div>
+      <iframe
+        className="strava-embed"
+        height="160"
+        width="300"
+        frameBorder="0"
+        allowTransparency
+        scrolling="no"
+        src=""
+        title="Latest Strava activity"
+      ></iframe>
       <img src="/images/oliver.jpg" alt="Oliver" className="profile-photo" />
     </div>
   );

@@ -175,7 +175,7 @@ nav, main, footer {
 main {
     min-height: 70vh;             /* vh = viewport height (screen height) */
     padding-top: var(--spacing-large);
-    padding-bottom: 80px;         /* Extra space so content doesn't hide behind fixed bottom bar */
+    padding-bottom: 220px;        /* Extra space so content doesn't hide behind fixed bottom bar */
 }
 
 
@@ -353,6 +353,14 @@ footer p {
     height: 20px;
 }
 
+.strava-embed {
+    width: min(300px, 40vw);
+    min-width: 120px;
+    height: 160px;
+    border: 0;
+    border-radius: 8px;
+}
+
 .profile-photo {
     width: 40px;
     height: 40px;
@@ -365,6 +373,12 @@ footer p {
 
 .profile-photo:hover {
     opacity: 1;
+}
+
+@media (max-width: 480px) {
+    .strava-embed {
+        width: min(180px, 36vw);
+    }
 }
 
 
