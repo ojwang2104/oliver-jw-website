@@ -11,6 +11,8 @@ export default function Reading2026Page() {
       <ol className="reading-list">
         <li>All the King's Men <span className="book-author">— Warren</span></li>
         <li>The Score Takes Care of Itself <span className="book-author">— Walsh</span></li>
+        <li>The Partnership <span className="book-author">— Ellis</span></li>
+        <li>Demian <span className="book-author">— Hesse</span></li>
       </ol>
     </main>
   );
