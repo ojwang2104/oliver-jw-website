@@ -13,6 +13,8 @@ export default function Reading2026Page() {
         <li>The Score Takes Care of Itself <span className="book-author">— Walsh</span></li>
         <li>The Partnership <span className="book-author">— Ellis</span></li>
         <li>Demian <span className="book-author">— Hesse</span></li>
+        <li>The Fountainhead <span className="book-author">— Rand</span></li>
+        <li>Infinity Machine <span className="book-author">— Mallaby</span></li>
       </ol>
     </main>
   );
