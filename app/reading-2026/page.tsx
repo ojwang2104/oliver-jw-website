@@ -15,6 +15,7 @@ export default function Reading2026Page() {
         <li>Demian <span className="book-author">— Hesse</span></li>
         <li>The Fountainhead <span className="book-author">— Rand</span></li>
         <li>Infinity Machine <span className="book-author">— Mallaby</span></li>
+        <li>Apple in China <span className="book-author">— McGee</span></li>
       </ol>
     </main>
   );
