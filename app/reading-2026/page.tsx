@@ -17,6 +17,7 @@ export default function Reading2026Page() {
         <li>Infinity Machine <span className="book-author">— Mallaby</span></li>
         <li>Apple in China <span className="book-author">— McGee</span></li>
         <li>Red Notice <span className="book-author">— Browder</span></li>
+        <li>Atlas Shrugged <span className="book-author">— Rand</span></li>
       </ol>
     </main>
   );
